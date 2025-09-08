@@ -21,3 +21,4 @@ dist/
 *.local
 # Cursor IDE
 .cursor/
+.vercel

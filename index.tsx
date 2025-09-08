@@ -11,7 +11,18 @@ import { ToastMessage } from './components/ToastMessage';
 import { LiveMusicHelper } from './utils/LiveMusicHelper';
 import { AudioAnalyser } from './utils/AudioAnalyser';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: 'v1alpha' });
+let API_KEY = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
+if (!API_KEY) {
+  const entered = window.prompt('Enter your Gemini (Google AI Studio) API key') || '';
+  if (!entered.trim()) {
+    alert('API key is required to run.');
+    throw new Error('Missing GEMINI_API_KEY');
+  }
+  API_KEY = entered.trim();
+  localStorage.setItem('GEMINI_API_KEY', API_KEY);
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY, apiVersion: 'v1alpha' });
 const model = 'lyria-realtime-exp';
 
 function main() {
