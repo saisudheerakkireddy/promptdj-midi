@@ -1,0 +1,43 @@
+---
+globs: *.ts,*.tsx,*.css,*.html
+description: Project structure and runtime flow for promptdj-midi
+---
+
+# Project Structure Guide
+
+Entry point: [index.tsx](mdc:index.tsx) included by [index.html](mdc:index.html). Styles in [index.css](mdc:index.css).
+
+## Components
+- [components/PromptDjMidi.ts](mdc:components/PromptDjMidi.ts): Main grid UI, 16 prompt tiles, play/pause wiring, MIDI panel.
+- [components/PromptController.ts](mdc:components/PromptController.ts): Single tile; weight knob, text, MIDI learn/bind.
+- [components/WeightKnob.ts](mdc:components/WeightKnob.ts): Interactive knob with halo and audio-level reaction.
+- [components/PlayPauseButton.ts](mdc:components/PlayPauseButton.ts): Play/pause icon reflecting playback state.
+- [components/ToastMessage.ts](mdc:components/ToastMessage.ts): Top toast for errors/filtered prompts (auto-link URLs).
+
+## Utilities
+- [utils/LiveMusicHelper.ts](mdc:utils/LiveMusicHelper.ts): Connects to `@google/genai` live music, manages AudioContext, decoding, scheduling, and playback state. Emits: `playback-state-changed`, `filtered-prompt`, `error`.
+- [utils/MidiDispatcher.ts](mdc:utils/MidiDispatcher.ts): Web MIDI access, emits `cc-message` for active device.
+- [utils/AudioAnalyser.ts](mdc:utils/AudioAnalyser.ts): AnalyserNode loop, emits `audio-level-changed`.
+- [utils/audio.ts](mdc:utils/audio.ts): Encode/decode helpers, build AudioBuffer from PCM Int16, base64 helpers.
+- [utils/throttle.ts](mdc:utils/throttle.ts): Lightweight throttle returning last fresh result.
+- [types.ts](mdc:types.ts): `Prompt`, `ControlChange`, `PlaybackState`.
+
+## Runtime Flow
+1. [index.tsx](mdc:index.tsx) builds default prompts, renders `prompt-dj-midi`, `play-pause-button`, `toast-message`.
+2. Creates `LiveMusicHelper` with GoogleGenAI and model `lyria-realtime-exp`.
+3. Creates `AudioAnalyser` and connects as extraDestination of `LiveMusicHelper`.
+4. Wiring:
+   - `prompt-dj-midi` → `prompts-changed` → `LiveMusicHelper.setWeightedPrompts` (throttled, only after connect).
+   - `prompt-dj-midi` → `play-pause` → `LiveMusicHelper.playPause()`.
+   - `LiveMusicHelper` → `playback-state-changed` → update button and analyser start/stop.
+   - `LiveMusicHelper` → `filtered-prompt`/`error` → `ToastMessage.show(...)` and tile filter marks.
+   - `AudioAnalyser` → `audio-level-changed` → feed to tiles/knobs for halos.
+
+## MIDI Learn
+`PromptDjMidi` toggles MIDI view and enumerates inputs via `MidiDispatcher.getMidiAccess()`.
+`PromptController` in learn mode binds first seen CC/channel; thereafter CC movements map to weight 0..2 and emit `prompt-changed`.
+
+## Notes
+- GoogleGenAI API key read via `process.env.GEMINI_API_KEY` (configure in dev environment).
+- Active prompts = non-zero weight and not filtered by server.
+
