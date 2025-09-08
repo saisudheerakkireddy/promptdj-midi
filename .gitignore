@@ -19,4 +19,5 @@ dist/
 .idea/
 .vscode/
 *.local
-.cursor
+# Cursor IDE
+.cursor/
